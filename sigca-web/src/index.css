@@ -1,111 +1,107 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+@import "tailwindcss";
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@theme {
+  --color-comando: #4A7C59;
+  --color-comando-50: #EFF6F1;
+  --color-comando-100: #D9EBE0;
+  --color-comando-200: #B8D9C4;
+  --color-comando-300: #8FC29F;
+  --color-comando-400: #6AA57C;
+  --color-comando-500: #4A7C59;
+  --color-comando-600: #3D6649;
+  --color-comando-700: #2F4F38;
+  --color-comando-800: #223928;
+  --color-comando-900: #16251B;
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
+  --color-accion: #5B9BD5;
+  --color-accion-50: #EBF4FC;
+  --color-accion-100: #D4E8F9;
+  --color-accion-200: #A9D1F3;
+  --color-accion-300: #7EB9ED;
+  --color-accion-400: #6CAEE1;
+  --color-accion-500: #5B9BD5;
+  --color-accion-600: #4A7FB0;
+  --color-accion-700: #3A658C;
+  --color-accion-800: #2A4B68;
+  --color-accion-900: #1B3144;
+
+  --color-alerta: #FFB84D;
+  --color-alerta-50: #FFF8EB;
+  --color-alerta-100: #FFEFD4;
+  --color-alerta-200: #FFDFA9;
+  --color-alerta-300: #FFCF7E;
+  --color-alerta-400: #FFC366;
+  --color-alerta-500: #FFB84D;
+  --color-alerta-600: #DB9537;
+  --color-alerta-700: #B77425;
+  --color-alerta-800: #935517;
+  --color-alerta-900: #7A3C0D;
+
+  --color-operativo: #5FD068;
+  --color-peligro: #FF6B6B;
+  --color-emergencia: #E74C3C;
+  --color-carbon: #2C3E50;
+  --color-arena: #F5F7FA;
+
+  --font-family-sans: Inter, system-ui, sans-serif;
+  --font-family-tactical: Rajdhani, sans-serif;
+
+  --shadow-tactical: 0 2px 8px rgba(44, 62, 80, 0.08);
+  --shadow-tactical-lg: 0 8px 16px rgba(44, 62, 80, 0.12);;
+}
+
+@layer base {
+  body {
+    @apply bg-arena text-carbon antialiased;
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+@layer components {
+  /* Botón Primario Táctico */
+  .btn-primary {
+    @apply bg-comando hover:bg-comando-600 text-white font-semibold py-3 px-6 transition-all duration-200 shadow-tactical hover:shadow-tactical-lg active:scale-95;
   }
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+  /* Botón Acción */
+  .btn-action {
+    @apply bg-accion hover:bg-accion-600 text-white font-semibold py-3 px-6 transition-all duration-200 shadow-tactical hover:shadow-tactical-lg active:scale-95;
   }
-}
 
-body {
-  margin: 0;
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+  /* Botón Secundario */
+  .btn-secondary {
+    @apply bg-transparent border-2 border-comando text-comando hover:bg-comando hover:text-white font-semibold py-3 px-6 transition-all duration-200 active:scale-95;
   }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
+
+  /* Card Táctica */
+  .card-tactical {
+    @apply bg-white shadow-tactical hover:shadow-tactical-lg transition-shadow duration-200 border border-gray-200;
   }
-}
-p {
-  margin: 0;
-}
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
+  /* Input Táctico */
+  .input-tactical {
+    @apply w-full px-4 py-3 border-2 border-gray-300 focus:border-comando focus:ring-2 focus:ring-comando/20 transition-all duration-200 bg-white text-carbon;
+  }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+  /* Badge de Estado */
+  .badge {
+    @apply inline-flex items-center px-3 py-1 text-xs font-semibold uppercase tracking-wider;
+  }
+
+  .badge-success {
+    @apply inline-flex items-center px-3 py-1 text-xs font-semibold uppercase tracking-wider bg-operativo/10 text-operativo;
+  }
+
+  .badge-warning {
+    @apply inline-flex items-center px-3 py-1 text-xs font-semibold uppercase tracking-wider bg-peligro/10 text-peligro;
+  }
+
+  .badge-danger {
+    @apply inline-flex items-center px-3 py-1 text-xs font-semibold uppercase tracking-wider bg-emergencia/10 text-emergencia;
+  }
+
+  .badge-info {
+    @apply inline-flex items-center px-3 py-1 text-xs font-semibold uppercase tracking-wider bg-accion/10 text-accion;
+  }
 }

@@ -10,9 +10,12 @@ import {
   MapPin,
   ArrowRight,
   User,
-  Crosshair
+  Crosshair,
+  Target
 } from 'lucide-react';
 import Logo from '../../Componentes/Logo';
+import MobileMenu from '../../Componentes/MobileMenu';
+import { DashboardSkeleton } from '../../Componentes/SkeletonLoaders';
 
 export default function PlayerDashboard() {
   const { user, logout } = useAuth();
@@ -69,11 +72,7 @@ export default function PlayerDashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-carbon flex items-center justify-center">
-        <div className="text-white text-xl font-tactical">CARGANDO OPERACIONES...</div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
@@ -91,17 +90,18 @@ export default function PlayerDashboard() {
             </Link>
 
             <div className="flex items-center gap-4">
-              <div className="text-right hidden sm:block">
+              <Link to="/player/profile" className="text-right hidden sm:block hover:opacity-80 transition-opacity">
                 <div className="text-white font-semibold">{user?.name}</div>
                 <div className="text-comando-200 text-sm">{user?.email}</div>
-              </div>
+              </Link>
               <button
                 onClick={logout}
-                className="flex items-center gap-2 bg-comando-800 hover:bg-comando-700 text-white px-4 py-2 transition-colors font-tactical uppercase text-sm"
+                className="hidden lg:flex items-center gap-2 bg-comando-800 hover:bg-comando-700 text-white px-4 py-2 transition-colors font-tactical uppercase text-sm"
               >
                 <LogOut className="w-4 h-4" />
                 Salir
               </button>
+              <MobileMenu user={user} logout={logout} />
             </div>
           </div>
         </div>
@@ -280,7 +280,7 @@ export default function PlayerDashboard() {
             <div className="bg-comando-900 border border-comando-700 p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-black text-white font-tactical flex items-center gap-2">
-                  <Calendar className="w-6 h-6 text-accion" />
+                  <Target className="w-6 h-6 text-accion" />
                   MIS RESERVAS
                 </h2>
                 <Link

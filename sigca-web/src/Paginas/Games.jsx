@@ -13,6 +13,8 @@ import {
   User
 } from 'lucide-react';
 import Logo from '../Componentes/Logo';
+import WhatsAppButton from '../Componentes/WhatsAppButton';
+import { GameCardSkeleton } from '../Componentes/SkeletonLoaders';
 
 export default function Games() {
   const { user, logout } = useAuth();
@@ -148,7 +150,13 @@ export default function Games() {
       {/* Lista de partidas */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          {games.length === 0 ? (
+          {loading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <GameCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : games.length === 0 ? (
             <div className="bg-comando-900 border border-comando-700 p-12 text-center">
               <Calendar className="w-16 h-16 text-comando-600 mx-auto mb-4" />
               <h3 className="text-2xl font-black text-white font-tactical mb-2">
@@ -169,12 +177,28 @@ export default function Games() {
               {games.map((game) => {
                 const dateInfo = formatDateShort(game.starts_at);
                 const isFull = game.available_slots === 0;
+                const isAlmostFull = game.available_slots > 0 && game.available_slots <= 5;
+                const isLastSpots = game.available_slots > 0 && game.available_slots <= 2;
                 
                 return (
                   <div
                     key={game.id}
-                    className="bg-comando-900 border-2 border-comando-700 hover:border-accion transition-all group"
+                    className={`bg-comando-900 border-2 hover:border-accion transition-all group relative slide-up ${
+                      isLastSpots ? 'border-emergencia' : isAlmostFull ? 'border-alerta' : 'border-comando-700'
+                    }`}
                   >
+                    {/* Badge de popularidad */}
+                    {isLastSpots && (
+                      <div className="absolute top-4 right-4 z-10 bg-emergencia text-white px-3 py-1 text-xs font-black uppercase tracking-wider animate-pulse">
+                        ⚠️ ÚLTIMAS PLAZAS
+                      </div>
+                    )}
+                    {isAlmostFull && !isLastSpots && (
+                      <div className="absolute top-4 right-4 z-10 bg-alerta text-carbon px-3 py-1 text-xs font-black uppercase tracking-wider">
+                        🔥 CASI LLENA
+                      </div>
+                    )}
+                    
                     {/* Fecha destacada */}
                     <div className="bg-accion p-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -325,6 +349,9 @@ export default function Games() {
           </div>
         </div>
       </footer>
+      
+      {/* Botón flotante de WhatsApp */}
+      <WhatsAppButton />
     </div>
   );
 }

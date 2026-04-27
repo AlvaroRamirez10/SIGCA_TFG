@@ -11,6 +11,7 @@ import Games from './Paginas/Games';
 import PlayerDashboard from './Paginas/player/Dashboard';
 import PlayerReservations from './Paginas/player/Reservations';
 import PlayerLoyalty from './Paginas/player/Loyalty';
+import PlayerProfile from './Paginas/player/profile';
 
 // Páginas de admin
 import AdminDashboard from './Paginas/admin/Dashboard';
@@ -62,6 +63,7 @@ function AppRoutes() {
       <Route path="/player" element={<ProtectedRoute><PlayerDashboard /></ProtectedRoute>} />
       <Route path="/player/reservations" element={<ProtectedRoute><PlayerReservations /></ProtectedRoute>} />
       <Route path="/player/loyalty" element={<ProtectedRoute><PlayerLoyalty /></ProtectedRoute>} />
+      <Route path="/player/profile" element={<ProtectedRoute><PlayerProfile /></ProtectedRoute>} />
 
       {/* Rutas de admin */}
       <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />

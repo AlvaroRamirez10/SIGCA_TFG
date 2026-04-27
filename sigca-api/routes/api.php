@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\PlayerController;
 use App\Http\Controllers\Api\ReservationController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\ProfileController;
 
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
@@ -36,5 +37,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('reservations',                 [ReservationController::class, 'store']);
         Route::delete('reservations/{reservation}', [ReservationController::class, 'destroy']);
         Route::get('loyalty',                       [ReservationController::class, 'loyalty']);
+        
+        // Rutas de perfil
+        Route::get('/profile', [ProfileController::class, 'show']);
+        Route::put('/profile', [ProfileController::class, 'update']);
+        Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar']);
+        Route::put('/profile/password', [ProfileController::class, 'changePassword']);
+        Route::delete('/profile', [ProfileController::class, 'destroy']);
     });
 });

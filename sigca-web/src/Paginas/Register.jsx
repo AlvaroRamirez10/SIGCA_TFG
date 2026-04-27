@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
 import { User, Mail, Lock, Shield, ArrowRight, Calendar } from 'lucide-react';
 import Logo from '../Componentes/Logo';
+import WhatsAppButton from '../Componentes/WhatsAppButton';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -225,6 +226,9 @@ export default function Register() {
           </p>
         </div>
       </div>
+      
+      {/* Botón flotante de WhatsApp */}
+      <WhatsAppButton />
     </div>
   );
 }

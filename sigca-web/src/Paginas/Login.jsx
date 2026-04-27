@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
 import { Mail, Lock, ArrowRight, Shield } from 'lucide-react';
 import Logo from '../Componentes/Logo';
+import WhatsAppButton from '../Componentes/WhatsAppButton';
 
 export default function Login() {
   const [email, setEmail] = useState('');

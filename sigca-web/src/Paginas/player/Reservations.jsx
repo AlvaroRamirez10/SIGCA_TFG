@@ -14,6 +14,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import Logo from '../../Componentes/Logo';
+import MobileMenu from '../../Componentes/MobileMenu';
 
 export default function PlayerReservations() {
   const { user, logout } = useAuth();
@@ -156,17 +157,18 @@ export default function PlayerReservations() {
             </Link>
 
             <div className="flex items-center gap-4">
-              <div className="text-right hidden sm:block">
+              <Link to="/player/profile" className="text-right hidden sm:block hover:opacity-80 transition-opacity">
                 <div className="text-white font-semibold">{user?.name}</div>
                 <div className="text-comando-200 text-sm">{user?.email}</div>
-              </div>
+              </Link>
               <button
                 onClick={logout}
-                className="flex items-center gap-2 bg-comando-800 hover:bg-comando-700 text-white px-4 py-2 transition-colors font-tactical uppercase text-sm"
+                className="hidden lg:flex items-center gap-2 bg-comando-800 hover:bg-comando-700 text-white px-4 py-2 transition-colors font-tactical uppercase text-sm"
               >
                 <LogOut className="w-4 h-4" />
                 Salir
               </button>
+              <MobileMenu user={user} logout={logout} />
             </div>
           </div>
         </div>

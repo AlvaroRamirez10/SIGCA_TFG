@@ -11,6 +11,10 @@ import {
   Target,
 } from "lucide-react";
 import Logo from '../Componentes/Logo';
+import WhatsAppButton from '../Componentes/WhatsAppButton';
+import campoImg from '../assets/campo.jpg';
+import jugadoresImg from '../assets/jugadores.jpg';
+import equipoImg from '../assets/equipo.jpg';
 
 export default function Home() {
   return (
@@ -21,7 +25,7 @@ export default function Home() {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: `url('https://images.unsplash.com/photo-1624920829533-33f0a7ac2e0b?w=1920&q=80')`,
+            backgroundImage: `url(${campoImg})`,
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-carbon/55 via-carbon/45 to-carbon/65"></div>
@@ -161,8 +165,8 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-4">
             <div className="relative group overflow-hidden aspect-video bg-comando-100">
               <img
-                src="https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=600&q=80"
-                alt="Campo"
+                src={campoImg}
+                alt="Campo SIGCA"
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-carbon/70 via-transparent to-transparent opacity-60"></div>
@@ -176,31 +180,31 @@ export default function Home() {
 
             <div className="relative group overflow-hidden aspect-video bg-comando-100">
               <img
-                src="https://images.unsplash.com/photo-1526666923127-b2970f64b422?w=600&q=80"
-                alt="Réplicas"
+                src={jugadoresImg}
+                alt="Jugadores SIGCA"
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-carbon/70 via-transparent to-transparent opacity-60"></div>
               <div className="absolute bottom-4 left-4 text-white font-tactical">
                 <div className="text-xs text-alerta uppercase tracking-widest mb-1">
-                  Armamento
+                  Comunidad
                 </div>
-                <div className="text-lg font-bold">RÉPLICAS DE ÉLITE</div>
+                <div className="text-lg font-bold">NUESTROS COMBATIENTES</div>
               </div>
             </div>
 
             <div className="relative group overflow-hidden aspect-video bg-comando-100">
               <img
-                src="https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=600&q=80"
-                alt="Equipo"
+                src={equipoImg}
+                alt="Equipo SIGCA"
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-carbon/70 via-transparent to-transparent opacity-60"></div>
               <div className="absolute bottom-4 left-4 text-white font-tactical">
                 <div className="text-xs text-alerta uppercase tracking-widest mb-1">
-                  Protección
+                  Equipamiento
                 </div>
-                <div className="text-lg font-bold">EQUIPO COMPLETO</div>
+                <div className="text-lg font-bold">RÉPLICAS Y PROTECCIÓN</div>
               </div>
             </div>
           </div>
@@ -366,7 +370,7 @@ export default function Home() {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: `url('https://images.unsplash.com/photo-1624920829533-33f0a7ac2e0b?w=1920&q=80')`,
+            backgroundImage: `url(${campoImg})`,
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-carbon/55 via-carbon/50 to-carbon/65"></div>
@@ -448,6 +452,9 @@ export default function Home() {
           </div>
         </div>
       </footer>
+      
+      {/* Botón flotante de WhatsApp */}
+      <WhatsAppButton />
     </div>
   );
 }

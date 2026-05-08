@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminNotification;
 use App\Models\FreeGameCredit;
 use App\Models\Game;
 use App\Models\Payment;
@@ -30,12 +31,15 @@ class ReservationController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'game_id'          => ['required', 'exists:games,id'],
-            'use_free_credit'  => ['nullable', 'boolean'],
+            'game_id'         => ['required', 'exists:games,id'],
+            'use_free_credit' => ['nullable', 'boolean'],
+        ], [
+            'game_id.required' => 'La partida es obligatoria.',
+            'game_id.exists'   => 'La partida indicada no existe.',
         ]);
 
         $player = $request->user()->player;
-        $game   = Game::findOrFail($request->game_id);
+        $game = Game::findOrFail($request->game_id);
 
         // Verificaciones previas
         if ($player->isBlocked()) {
@@ -44,7 +48,7 @@ class ReservationController extends Controller
             ], Response::HTTP_FORBIDDEN);
         }
 
-        if (! $game->isPublished()) {
+        if (!$game->isPublished()) {
             return response()->json([
                 'message' => 'Esta partida no está disponible.',
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -69,7 +73,7 @@ class ReservationController extends Controller
         }
 
         // Verificar si quiere usar crédito gratis y tiene uno disponible
-        $freeCredit    = null;
+        $freeCredit = null;
         $useFreeCredit = $request->boolean('use_free_credit', false);
 
         if ($useFreeCredit) {
@@ -80,35 +84,35 @@ class ReservationController extends Controller
 
         $reservation = DB::transaction(function () use ($player, $game, $freeCredit) {
             $reservation = Reservation::create([
-                'player_id'      => $player->id,
-                'game_id'        => $game->id,
+                'player_id' => $player->id,
+                'game_id' => $game->id,
                 'free_credit_id' => $freeCredit?->id,
-                'status'         => $freeCredit ? 'confirmed' : 'pending',
+                'status' => $freeCredit ? 'confirmed' : 'pending',
             ]);
 
             if ($freeCredit) {
                 // Marcamos el crédito como usado
                 $freeCredit->update([
-                    'status'                => 'used',
+                    'status' => 'used',
                     'used_in_reservation_id' => $reservation->id,
-                    'used_at'               => now(),
+                    'used_at' => now(),
                 ]);
 
                 // Creamos el pago con método free
                 Payment::create([
                     'reservation_id' => $reservation->id,
-                    'amount'         => 0.00,
-                    'method'         => 'free',
-                    'status'         => 'paid',
-                    'paid_at'        => now(),
+                    'amount' => 0.00,
+                    'method' => 'free',
+                    'status' => 'paid',
+                    'paid_at' => now(),
                 ]);
             } else {
-                // Pago pendiente normal
+                // Pago pendiente normal — siempre Bizum
                 Payment::create([
                     'reservation_id' => $reservation->id,
-                    'amount'         => $game->price,
-                    'method'         => 'cash',
-                    'status'         => 'pending',
+                    'amount' => $game->price,
+                    'method' => 'bizum',
+                    'status' => 'pending',
                 ]);
             }
 
@@ -122,8 +126,20 @@ class ReservationController extends Controller
 
         $reservation->load(['game', 'payment']);
 
+        AdminNotification::create([
+            'type'    => 'reservation_created',
+            'title'   => 'Nueva reserva',
+            'message' => "{$player->user->name} ha reservado plaza en \"{$game->title}\"."
+                . ($freeCredit ? ' (Partida gratis)' : " ({$game->price}€ pendiente de Bizum)"),
+            'data'    => [
+                'reservation_id' => $reservation->id,
+                'player_id'      => $player->id,
+                'game_id'        => $game->id,
+            ],
+        ]);
+
         $response = [
-            'message'     => $freeCredit
+            'message' => $freeCredit
                 ? '¡Reserva confirmada con tu partida gratis!'
                 : 'Reserva creada. Pendiente de pago.',
             'reservation' => $reservation,
@@ -142,7 +158,7 @@ class ReservationController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $player       = $request->user()->player;
+        $player = $request->user()->player;
         $reservations = Reservation::where('player_id', $player->id)
             ->with(['game', 'payment'])
             ->orderBy('created_at', 'desc')
@@ -157,13 +173,16 @@ class ReservationController extends Controller
      */
     public function destroy(Request $request, Reservation $reservation): JsonResponse
     {
-        $player = $request->user()->player;
+        $user = $request->user();
 
-        // Verificar que la reserva pertenece al jugador
-        if ($reservation->player_id !== $player->id) {
-            return response()->json([
-                'message' => 'No tienes permiso para cancelar esta reserva.',
-            ], Response::HTTP_FORBIDDEN);
+        if ($user->role !== 'admin') {
+            $player = $user->player;
+
+            if (!$player || $reservation->player_id !== $player->id) {
+                return response()->json([
+                    'message' => 'No tienes permiso para cancelar esta reserva.',
+                ], Response::HTTP_FORBIDDEN);
+            }
         }
 
         if ($reservation->status === 'cancelled') {
@@ -178,24 +197,55 @@ class ReservationController extends Controller
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        // Capturamos los datos necesarios para la notificación antes de modificar nada
+        $reservation->load(['player.user', 'game', 'payment']);
+        $playerName    = $reservation->player->user->name;
+        $gameTitle     = $reservation->game->title;
+        $paymentWasPaid = $reservation->payment?->status === 'paid';
+        $refundAmount  = $reservation->payment?->amount;
+
         DB::transaction(function () use ($reservation) {
-            // Si tenía crédito gratis aplicado, lo devolvemos
             if ($reservation->free_credit_id) {
-                FreeGameCredit::find($reservation->free_credit_id)->update([
-                    'status'                 => 'available',
-                    'used_in_reservation_id' => null,
-                    'used_at'                => null,
-                ]);
+                $freeCredit = FreeGameCredit::find($reservation->free_credit_id);
+
+                if ($freeCredit) {
+                    $freeCredit->update([
+                        'status' => 'available',
+                        'used_in_reservation_id' => null,
+                        'used_at' => null,
+                    ]);
+                }
             }
 
             $reservation->update(['status' => 'cancelled']);
-            $reservation->payment?->update(['status' => 'refunded']);
 
-            // Liberar la plaza — si la partida estaba full vuelve a published
+            // Solo reembolsar si el pago ya estaba cobrado; si estaba pendiente, se elimina
+            if ($reservation->payment) {
+                if ($reservation->payment->status === 'paid') {
+                    $reservation->payment->update(['status' => 'refunded']);
+                } else {
+                    $reservation->payment->delete();
+                }
+            }
+
             if ($reservation->game->status === 'full') {
                 $reservation->game->update(['status' => 'published']);
             }
         });
+
+        AdminNotification::create([
+            'type'    => $paymentWasPaid ? 'refund_requested' : 'reservation_cancelled',
+            'title'   => $paymentWasPaid ? 'Cancelación — reembolso pendiente' : 'Reserva cancelada',
+            'message' => $paymentWasPaid
+                ? "{$playerName} ha cancelado su reserva en \"{$gameTitle}\". Pago confirmado de {$refundAmount}€ — pendiente de reembolso por Bizum."
+                : "{$playerName} ha cancelado su reserva en \"{$gameTitle}\".",
+            'data'    => [
+                'reservation_id' => $reservation->id,
+                'player_id'      => $reservation->player->id,
+                'game_id'        => $reservation->game->id,
+                'refund_amount'  => $paymentWasPaid ? $refundAmount : null,
+            ],
+        ]);
 
         return response()->json([
             'message' => 'Reserva cancelada correctamente.',
@@ -232,13 +282,36 @@ class ReservationController extends Controller
     }
 
     /**
+     * El admin confirma una reserva pendiente (sin pago).
+     */
+    public function confirm(Reservation $reservation): JsonResponse
+    {
+        if ($reservation->status !== 'pending') {
+            return response()->json([
+                'message' => 'Solo se pueden confirmar reservas pendientes.',
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $reservation->update(['status' => 'confirmed']);
+        $reservation->load(['player.user', 'game', 'payment']);
+
+        return response()->json([
+            'message'     => 'Reserva confirmada correctamente.',
+            'reservation' => $reservation,
+        ]);
+    }
+
+    /**
      * El admin confirma el pago de una reserva.
      */
     public function confirmPayment(Request $request, Reservation $reservation): JsonResponse
     {
         $request->validate([
-            'method' => ['required', 'in:cash,bizum'],
-            'notes'  => ['nullable', 'string', 'max:200'],
+            'method' => ['required', 'in:bizum'],
+            'notes' => ['nullable', 'string', 'max:200'],
+        ], [
+            'method.required' => 'El método de pago es obligatorio.',
+            'method.in'       => 'Método no válido.',
         ]);
 
         if ($reservation->status === 'confirmed') {
@@ -253,12 +326,12 @@ class ReservationController extends Controller
             $reservation->payment()->updateOrCreate(
                 ['reservation_id' => $reservation->id],
                 [
-                    'amount'       => $reservation->game->price,
-                   'method' => $request->input('method'),
-                    'status'       => 'paid',
+                    'amount' => $reservation->game->price,
+                    'method' => $request->input('method'),
+                    'status' => 'paid',
                     'confirmed_by' => $request->user()->id,
-                    'notes'        => $request->input('notes'),
-                    'paid_at'      => now(),
+                    'notes' => $request->input('notes'),
+                    'paid_at' => now(),
                 ]
             );
         });
@@ -266,7 +339,7 @@ class ReservationController extends Controller
         $reservation->load(['player.user', 'game', 'payment']);
 
         return response()->json([
-            'message'     => 'Pago confirmado correctamente.',
+            'message' => 'Pago confirmado correctamente.',
             'reservation' => $reservation,
         ]);
     }
@@ -279,12 +352,32 @@ class ReservationController extends Controller
         $player      = $request->user()->player;
         $loyaltyCard = $player->loyaltyCard()->with('freeGameCredits')->first();
 
+        // Historial de sellos: una por cada reserva con attended = true
+        $stampHistory = Reservation::where('player_id', $player->id)
+            ->where('attended', true)
+            ->with('game:id,title,starts_at')
+            ->orderBy('updated_at', 'asc')
+            ->get()
+            ->values()
+            ->map(fn($r, $i) => [
+                'id'           => $r->id,
+                'stamp_number' => $i + 1,
+                'earned_at'    => $r->updated_at,
+                'reservation'  => [
+                    'id'   => $r->id,
+                    'game' => $r->game ? ['title' => $r->game->title] : null,
+                ],
+            ]);
+
+        $loyaltyCard->setRelation('stamps', $stampHistory);
+
         return response()->json([
-            'loyalty_card'      => $loyaltyCard,
-            'stamps_count'      => $loyaltyCard->stamps_count,
-            'stamps_required'   => config('sigca.loyalty_stamps_required', 5),
-            'stamps_remaining'  => config('sigca.loyalty_stamps_required', 5) - $loyaltyCard->stamps_count,
+            'loyalty_card'     => $loyaltyCard,
+            'stamps_count'     => $loyaltyCard->stamps_count,
+            'stamps_required'  => config('sigca.loyalty_stamps_required', 5),
+            'stamps_remaining' => config('sigca.loyalty_stamps_required', 5) - $loyaltyCard->stamps_count,
             'available_credits' => $loyaltyCard->freeGameCredits()->where('status', 'available')->count(),
+            'used_credits'      => $loyaltyCard->freeGameCredits()->where('status', 'used')->count(),
         ]);
     }
 }

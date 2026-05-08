@@ -15,6 +15,7 @@ class Game extends Model
         'description',
         'location',
         'starts_at',
+        'ends_at',
         'max_slots',
         'price',
         'status',
@@ -23,6 +24,7 @@ class Game extends Model
 
     protected $casts = [
         'starts_at'  => 'datetime',
+        'ends_at'    => 'datetime',
         'price'      => 'decimal:2',
         'max_slots'  => 'integer',
     ];
@@ -45,14 +47,14 @@ class Game extends Model
     // Helpers
     // -------------------------------------------------------
 
-    public function confirmedReservations()
+    public function activeReservations()
     {
-        return $this->reservations()->where('status', 'confirmed');
+        return $this->reservations()->whereNotIn('status', ['cancelled']);
     }
 
     public function availableSlots(): int
     {
-        return $this->max_slots - $this->confirmedReservations()->count();
+        return $this->max_slots - $this->activeReservations()->count();
     }
 
     public function isFull(): bool

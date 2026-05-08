@@ -21,12 +21,22 @@ class AttendanceController extends Controller
     {
         $request->validate([
             'attended' => ['required', 'boolean'],
+        ], [
+            'attended.required' => 'El campo de asistencia es obligatorio.',
+            'attended.boolean'  => 'El valor de asistencia debe ser verdadero o falso.',
         ]);
 
         // Protección: no se puede cambiar la asistencia de una reserva cancelada
         if ($reservation->status === 'cancelled') {
             return response()->json([
                 'message' => 'No se puede registrar asistencia en una reserva cancelada.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        // Protección: la partida debe haber comenzado ya
+        if ($reservation->game->starts_at > now()) {
+            return response()->json([
+                'message' => 'No se puede registrar asistencia antes de que comience la partida.',
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
@@ -40,7 +50,7 @@ class AttendanceController extends Controller
         $reservation->update(['attended' => $request->attended]);
 
         // Recargamos con las relaciones actualizadas por el Observer
-        $reservation->load(['player.loyaltyCard', 'player']);
+        $reservation->load(['player.user', 'player.loyaltyCard', 'game', 'payment']);
 
         $player = $reservation->player;
 

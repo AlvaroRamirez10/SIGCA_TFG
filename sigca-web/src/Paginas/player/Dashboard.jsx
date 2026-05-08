@@ -36,11 +36,28 @@ export default function PlayerDashboard() {
         api.get('/games'),
       ]);
 
-      setReservations(reservationsRes.data.reservations || []);
+      let reservationsData = reservationsRes.data?.reservations || reservationsRes.data || [];
+      let gamesData = gamesRes.data?.games || gamesRes.data || [];
+      
+      // Mapear reservations
+      if (Array.isArray(reservationsData)) {
+        reservationsData = reservationsData.map(res => ({
+          ...res,
+          player: res.player ? {
+            ...res.player,
+            name: res.player?.user?.name || res.player?.name || 'Sin nombre',
+            email: res.player?.user?.email || res.player?.email || 'Sin email'
+          } : res.player
+        }));
+      }
+      
+      setReservations(Array.isArray(reservationsData) ? reservationsData : []);
       setLoyaltyCard(loyaltyRes.data);
-      setNextGames(gamesRes.data.games?.slice(0, 3) || []);
+      setNextGames(Array.isArray(gamesData) ? gamesData.slice(0, 3) : []);
     } catch (error) {
       console.error('Error cargando dashboard:', error);
+      setReservations([]);
+      setNextGames([]);
     } finally {
       setLoading(false);
     }
@@ -307,31 +324,42 @@ export default function PlayerDashboard() {
               ) : (
                 <div className="space-y-3">
                   {reservations.slice(0, 5).map((reservation) => (
-                    <div
-                      key={reservation.id}
-                      className="bg-carbon border border-comando-800 p-4 flex items-center justify-between"
-                    >
-                      <div className="flex-1">
-                        <div className="text-white font-semibold mb-1">
-                          {reservation.game?.title}
+                    <div key={reservation.id} className="bg-carbon border border-comando-800">
+                      <div className="p-4 flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="text-white font-semibold mb-1">
+                            {reservation.game?.title}
+                          </div>
+                          <div className="text-comando-200 text-sm flex items-center gap-3">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {formatDate(reservation.game?.starts_at)}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {reservation.game?.location}
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-comando-200 text-sm flex items-center gap-3">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatDate(reservation.game?.starts_at)}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {reservation.game?.location}
-                          </span>
+                        <div className="text-right">
+                          {getStatusBadge(reservation.status)}
+                          <div className="text-white font-bold mt-1">
+                            {reservation.payment?.amount}€
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        {getStatusBadge(reservation.status)}
-                        <div className="text-white font-bold mt-1">
-                          {reservation.payment?.amount}€
+                      {reservation.status === 'pending' && (
+                        <div className="px-4 pb-4">
+                          <div className="bg-alerta/10 border border-alerta/30 p-3">
+                            <p className="text-alerta text-xs font-bold uppercase tracking-wide mb-1">
+                              Bizum pendiente
+                            </p>
+                            <p className="text-alerta/80 text-xs">
+                              Envía <strong>{reservation.payment?.amount}€</strong> al <strong className="text-white font-tactical tracking-wider">693 242 855</strong> con tu nombre en el concepto.
+                            </p>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -30,9 +30,24 @@ export default function PlayerReservations() {
   const loadReservations = async () => {
     try {
       const response = await api.get('/player/reservations');
-      setReservations(response.data.reservations || []);
+      let reservationsData = response.data?.reservations || response.data || [];
+      
+      // Mapear para extraer player.name y player.email de user
+      if (Array.isArray(reservationsData)) {
+        reservationsData = reservationsData.map(res => ({
+          ...res,
+          player: res.player ? {
+            ...res.player,
+            name: res.player?.user?.name || res.player?.name || 'Sin nombre',
+            email: res.player?.user?.email || res.player?.email || 'Sin email'
+          } : res.player
+        }));
+      }
+      
+      setReservations(Array.isArray(reservationsData) ? reservationsData : []);
     } catch (error) {
       console.error('Error cargando reservas:', error);
+      setReservations([]);
     } finally {
       setLoading(false);
     }
@@ -333,7 +348,7 @@ export default function PlayerReservations() {
                           {reservation.payment?.amount || 0}€
                         </div>
                         <div className="text-comando-200 text-xs uppercase">
-                          {reservation.payment?.method === 'free' ? 'Gratis' : reservation.payment?.method || 'Efectivo'}
+                          {reservation.payment?.method === 'free' ? 'Gratis' : 'Bizum'}
                         </div>
                       </div>
 
@@ -368,9 +383,18 @@ export default function PlayerReservations() {
                   {/* Nota si está pendiente de pago */}
                   {reservation.status === 'pending' && (
                     <div className="mt-4 pt-4 border-t border-comando-800">
-                      <div className="bg-alerta/10 border border-alerta/30 p-3">
-                        <p className="text-alerta text-sm">
-                          <strong>Pendiente de confirmación:</strong> Realiza el pago de {reservation.payment?.amount}€ en efectivo o Bizum al llegar al campo.
+                      <div className="bg-alerta/10 border border-alerta/30 p-4">
+                        <p className="text-alerta text-sm font-bold uppercase tracking-wide mb-2">
+                          Pendiente de confirmación
+                        </p>
+                        <p className="text-alerta/80 text-sm">
+                          Realiza un Bizum de <strong>{reservation.payment?.amount}€</strong> al número:
+                        </p>
+                        <p className="text-white text-2xl font-black font-tactical tracking-widest my-2">
+                          693 242 855
+                        </p>
+                        <p className="text-comando-300 text-xs">
+                          Incluye tu nombre en el concepto. Tu reserva se confirmará cuando el admin verifique el pago.
                         </p>
                       </div>
                     </div>

@@ -91,7 +91,7 @@ export default function Home() {
                     8€
                   </div>
                   <div className="text-xs uppercase tracking-wide">
-                    Por partida
+                    Por partida desde
                   </div>
                 </div>
               </div>
@@ -251,7 +251,7 @@ export default function Home() {
               {
                 num: "03",
                 title: "COMBATE",
-                desc: "Presentación en campo. Pago: 8€ (efectivo/Bizum).",
+                desc: "Presentación en campo. Pago desde: 8€ (Bizum).",
               },
               {
                 num: "04",
@@ -309,7 +309,7 @@ export default function Home() {
                 color: "accion",
                 title: "COSTE POR MISIÓN",
                 value: "8€",
-                sub: "Efectivo o Bizum en campo",
+                sub: "exclusivamente Bizum",
               },
               {
                 icon: Clock,

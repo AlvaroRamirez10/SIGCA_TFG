@@ -19,12 +19,13 @@ class UpdatePlayerRequest extends FormRequest
         $userId = $this->route('player')->user_id;
 
         return [
-            'name'   => ['sometimes', 'string', 'max:100'],
-            'email'  => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($userId)],
-            'phone'  => ['nullable', 'string', 'max:20'],
-            'alias'  => ['nullable', 'string', 'max:60'],
-            'status' => ['sometimes', Rule::in(['active', 'warned', 'blocked'])],
-            'notes'  => ['nullable', 'string', 'max:500'],
+            'name'     => ['sometimes', 'string', 'max:100'],
+            'email'    => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($userId)],
+            'phone'    => ['nullable', 'string', 'max:20'],
+            'alias'    => ['nullable', 'string', 'max:60'],
+            'status'   => ['sometimes', Rule::in(['active', 'warned', 'blocked'])],
+            'notes'    => ['nullable', 'string', 'max:500'],
+            'password' => ['sometimes', 'nullable', 'string', 'min:8'],
         ];
     }
 

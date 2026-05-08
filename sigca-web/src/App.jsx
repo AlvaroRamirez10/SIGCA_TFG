@@ -18,6 +18,7 @@ import AdminDashboard from './Paginas/admin/Dashboard';
 import AdminPlayers from './Paginas/admin/Players';
 import AdminGames from './Paginas/admin/Games';
 import AdminReservations from './Paginas/admin/Reservations';
+import AdminPayments from './Paginas/admin/Payments';
 
 // Componente de ruta protegida
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
@@ -70,6 +71,7 @@ function AppRoutes() {
       <Route path="/admin/players" element={<ProtectedRoute requireAdmin><AdminPlayers /></ProtectedRoute>} />
       <Route path="/admin/games" element={<ProtectedRoute requireAdmin><AdminGames /></ProtectedRoute>} />
       <Route path="/admin/reservations" element={<ProtectedRoute requireAdmin><AdminReservations /></ProtectedRoute>} />
+      <Route path="/admin/payments" element={<ProtectedRoute requireAdmin><AdminPayments /></ProtectedRoute>} />
 
       {/* 404 */}
       <Route path="*" element={<Navigate to="/" />} />

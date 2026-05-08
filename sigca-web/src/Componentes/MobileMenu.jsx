@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Menu, X, Home, Calendar, Trophy, LogOut, User } from 'lucide-react';
 import Logo from './Logo';
 
-export default function MobileMenu({ user, logout }) {
+export default function MobileMenu({ user, logout, dark = true }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -14,7 +14,7 @@ export default function MobileMenu({ user, logout }) {
       {/* Botón hamburguesa */}
       <button
         onClick={toggleMenu}
-        className="lg:hidden text-white p-2 hover:bg-comando-800 transition-colors"
+        className={`lg:hidden p-2 transition-colors ${dark ? 'text-white hover:bg-comando-800' : 'text-gray-700 hover:bg-gray-100 rounded'}`}
         aria-label="Menú"
       >
         {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

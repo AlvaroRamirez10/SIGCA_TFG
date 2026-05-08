@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Player\StorePlayerRequest;
 use App\Http\Requests\Player\UpdatePlayerRequest;
+use App\Models\LoyaltyCard;
 use App\Models\Player;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\Storage;
 
 class PlayerController extends Controller
 {
@@ -65,7 +67,7 @@ class PlayerController extends Controller
                 'notes'   => $request->notes,
             ]);
 
-            \App\Models\LoyaltyCard::create([
+            LoyaltyCard::create([
                 'player_id' => $player->id,
             ]);
 
@@ -105,14 +107,14 @@ class PlayerController extends Controller
     public function update(UpdatePlayerRequest $request, Player $player): JsonResponse
     {
         DB::transaction(function () use ($request, $player) {
-            // Actualizamos el User asociado si vienen datos de él
-            if ($request->filled('name') || $request->filled('email')) {
-                $player->user->update(
-                    $request->only(['name', 'email', 'phone'])
-                );
+            $userFields = $request->only(['name', 'email', 'phone']);
+            if ($request->filled('password')) {
+                $userFields['password'] = Hash::make($request->password);
+            }
+            if (!empty($userFields)) {
+                $player->user->update($userFields);
             }
 
-            // Actualizamos el perfil del jugador
             $player->update(
                 $request->only(['alias', 'phone', 'status', 'notes'])
             );
@@ -147,6 +149,219 @@ class PlayerController extends Controller
             return response()->json([
                 'message' => 'No se puede eliminar un jugador con reservas. Cambia su estado a "bloqueado" en su lugar.',
             ], Response::HTTP_CONFLICT);
+        }
+    }
+
+    // ========================================================================
+    // MÉTODOS DE PERFIL (para el jugador autenticado)
+    // ========================================================================
+
+    /**
+     * Ver el perfil del jugador autenticado
+     */
+    public function profile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $player = $user->player;
+
+        if (!$player) {
+            return response()->json([
+                'message' => 'No se encontró el perfil de jugador.'
+            ], 404);
+        }
+
+        return response()->json([
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+            'player' => [
+                'id' => $player->id,
+                'alias' => $player->alias,
+                'phone' => $player->phone,
+                'birthdate' => $player->birthdate,
+                'avatar' => $player->avatar,
+                'status' => $player->status,
+                'no_show_count' => $player->no_show_count,
+            ]
+        ]);
+    }
+
+    /**
+     * Actualizar perfil del jugador autenticado
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,' . $request->user()->id,
+            'alias' => 'sometimes|string|max:100',
+            'phone' => 'nullable|string|max:20',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $user = $request->user();
+            $player = $user->player;
+
+            // Actualizar user
+            if (isset($validated['name'])) {
+                $user->name = $validated['name'];
+            }
+            if (isset($validated['email'])) {
+                $user->email = $validated['email'];
+            }
+            $user->save();
+
+            // Actualizar player
+            if (isset($validated['alias'])) {
+                $player->alias = $validated['alias'];
+            }
+            if (isset($validated['phone'])) {
+                $player->phone = $validated['phone'];
+            }
+            $player->save();
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Perfil actualizado correctamente',
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                ],
+                'player' => [
+                    'id' => $player->id,
+                    'alias' => $player->alias,
+                    'phone' => $player->phone,
+                    'avatar' => $player->avatar,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Error al actualizar el perfil',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Subir avatar del jugador
+     */
+    public function uploadAvatar(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,jpg|max:2048', // 2MB máximo
+        ]);
+
+        $player = $request->user()->player;
+
+        if (!$player) {
+            return response()->json(['message' => 'Jugador no encontrado'], 404);
+        }
+
+        try {
+            // Eliminar avatar anterior si existe
+            if ($player->avatar && Storage::disk('public')->exists($player->avatar)) {
+                Storage::disk('public')->delete($player->avatar);
+            }
+
+            // Guardar nuevo avatar
+            $path = $request->file('avatar')->store('avatars', 'public');
+            $player->update(['avatar' => $path]);
+
+            return response()->json([
+                'message' => 'Avatar actualizado correctamente',
+                'avatar' => $path,
+                'avatar_url' => asset('storage/' . $path)
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al subir el avatar',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cambiar contraseña del jugador
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = $request->user();
+
+        // Verificar contraseña actual
+        if (!Hash::check($validated['current_password'], $user->password)) {
+            return response()->json([
+                'message' => 'La contraseña actual es incorrecta',
+                'errors' => [
+                    'current_password' => ['La contraseña actual es incorrecta']
+                ]
+            ], 422);
+        }
+
+        // Actualizar contraseña
+        $user->password = Hash::make($validated['new_password']);
+        $user->save();
+
+        return response()->json([
+            'message' => 'Contraseña actualizada correctamente'
+        ]);
+    }
+
+    /**
+     * Eliminar cuenta del jugador (él mismo)
+     */
+    public function deleteAccount(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $user = $request->user();
+
+        // Verificar contraseña
+        if (!Hash::check($validated['password'], $user->password)) {
+            return response()->json([
+                'message' => 'Contraseña incorrecta',
+                'errors' => [
+                    'password' => ['La contraseña es incorrecta']
+                ]
+            ], 422);
+        }
+
+        try {
+            DB::transaction(function () use ($user) {
+                // Eliminar avatar si existe
+                $player = $user->player;
+                if ($player && $player->avatar && Storage::disk('public')->exists($player->avatar)) {
+                    Storage::disk('public')->delete($player->avatar);
+                }
+
+                // Eliminar usuario (cascade eliminará el player)
+                $user->delete();
+            });
+
+            return response()->json([
+                'message' => 'Cuenta eliminada correctamente'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Error al eliminar la cuenta',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 }

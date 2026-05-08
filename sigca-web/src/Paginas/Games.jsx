@@ -29,9 +29,11 @@ export default function Games() {
   const loadGames = async () => {
     try {
       const response = await api.get('/games');
-      setGames(response.data.games || []);
+      let gamesData = response.data?.games || response.data || [];
+      setGames(Array.isArray(gamesData) ? gamesData : []);
     } catch (error) {
       console.error('Error cargando partidas:', error);
+      setGames([]);
     } finally {
       setLoading(false);
     }

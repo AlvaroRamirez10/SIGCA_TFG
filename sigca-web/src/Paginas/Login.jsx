@@ -29,11 +29,6 @@ export default function Login() {
     }
   };
 
-  const quickLogin = (userEmail, userPassword) => {
-    setEmail(userEmail);
-    setPassword(userPassword);
-  };
-
   return (
     <div className="min-h-screen bg-carbon flex items-center justify-center p-4 relative overflow-hidden">
       {/* Fondo con textura */}
@@ -137,26 +132,6 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Acceso rápido desarrollo */}
-        <div className="mt-6 bg-comando-900/50 border border-comando-800 p-4">
-          <p className="text-comando-200 text-xs mb-3 uppercase tracking-wider font-tactical text-center">
-            Acceso rápido (desarrollo)
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => quickLogin('admin@sigca.local', 'sigca_admin_2024')}
-              className="text-xs bg-comando-800 hover:bg-comando-700 text-white px-3 py-2 transition-colors font-tactical uppercase"
-            >
-              Admin
-            </button>
-            <button
-              onClick={() => quickLogin('pedro@sigca.local', '12345678')}
-              className="text-xs bg-comando-800 hover:bg-comando-700 text-white px-3 py-2 transition-colors font-tactical uppercase"
-            >
-              Jugador
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

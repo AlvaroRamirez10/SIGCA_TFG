@@ -3,157 +3,132 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\FreeGameCredit;
 use App\Models\Game;
 use App\Models\Payment;
 use App\Models\Player;
 use App\Models\Reservation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    /**
-     * Devuelve todas las estadísticas del panel de administración.
-     * Un único endpoint para evitar múltiples llamadas desde el frontend.
-     */
     public function index(Request $request): JsonResponse
     {
-        return response()->json([
-            'next_game'        => $this->getNextGame(),
-            'pending_payments' => $this->getPendingPayments(),
-            'warned_players'   => $this->getWarnedPlayers(),
-            'summary'          => $this->getSummary(),
-        ]);
-    }
+        $now            = now();
+        $monthStart     = $now->copy()->startOfMonth();
+        $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
+        $lastMonthEnd   = $now->copy()->subMonth()->endOfMonth();
 
-    // -------------------------------------------------------
-    // Próxima partida con ocupación en tiempo real
-    // -------------------------------------------------------
-    private function getNextGame(): ?array
-    {
-        $game = Game::where('status', 'published')
-            ->where('starts_at', '>=', now())
-            ->orderBy('starts_at', 'asc')
-            ->withCount([
-                'reservations as total_reservations',
-                'reservations as confirmed_reservations' => fn($q) =>
-                    $q->where('status', 'confirmed'),
-                'reservations as pending_reservations' => fn($q) =>
-                    $q->where('status', 'pending'),
-            ])
-            ->first();
+        // ── Ingresos ──────────────────────────────────────────
+        $monthlyRevenue  = Payment::where('status', 'paid')
+                                  ->whereBetween('paid_at', [$monthStart, $now])
+                                  ->sum('amount');
 
-        if (! $game) {
-            return null;
-        }
+        $lastMonthRevenue = Payment::where('status', 'paid')
+                                   ->whereBetween('paid_at', [$lastMonthStart, $lastMonthEnd])
+                                   ->sum('amount');
 
-        $occupancyPercent = $game->max_slots > 0
-            ? round(($game->confirmed_reservations / $game->max_slots) * 100)
+        $revenueGrowth = $lastMonthRevenue > 0
+            ? round((($monthlyRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100, 1)
+            : ($monthlyRevenue > 0 ? 100 : 0);
+
+        // ── Asistencia ────────────────────────────────────────
+        $totalAttendances = Reservation::where('attended', true)->count();
+        $totalNoShows     = Reservation::where('attended', false)->count();
+        $totalMarked      = $totalAttendances + $totalNoShows;
+        $attendanceRate   = $totalMarked > 0
+            ? round(($totalAttendances / $totalMarked) * 100)
             : 0;
 
-        return [
-            'id'                    => $game->id,
-            'title'                 => $game->title,
-            'location'              => $game->location,
-            'starts_at'             => $game->starts_at,
-            'max_slots'             => $game->max_slots,
-            'confirmed_reservations'=> $game->confirmed_reservations,
-            'pending_reservations'  => $game->pending_reservations,
-            'available_slots'       => $game->max_slots - $game->confirmed_reservations,
-            'occupancy_percent'     => $occupancyPercent,
-        ];
-    }
-
-    // -------------------------------------------------------
-    // Cobros pendientes — los más urgentes primero
-    // -------------------------------------------------------
-    private function getPendingPayments(): array
-    {
-        $payments = Payment::where('status', 'pending')
-            ->with([
-                'reservation.player.user',
-                'reservation.game',
+        // ── Ocupación media (partidas publicadas / llenas / finalizadas) ──
+        $gamesForOccupancy = Game::whereIn('status', ['published', 'full', 'finished'])
+            ->withCount([
+                'reservations as occupied_slots' => fn($q) => $q->whereNotIn('status', ['cancelled']),
             ])
-            ->orderBy('created_at', 'asc') // los más antiguos primero
-            ->limit(10)
+            ->get();
+
+        $avgOccupancy = 0;
+        $validGames   = $gamesForOccupancy->filter(fn($g) => $g->max_slots > 0);
+        if ($validGames->count() > 0) {
+            $sumOccupancy = $validGames->sum(fn($g) => ($g->occupied_slots / $g->max_slots) * 100);
+            $avgOccupancy = round($sumOccupancy / $validGames->count());
+        }
+
+        // ── Próximas partidas (lista) ─────────────────────────
+        $upcomingGamesList = Game::whereIn('status', ['published', 'full'])
+            ->where('starts_at', '>=', $now)
+            ->orderBy('starts_at', 'asc')
+            ->limit(5)
+            ->withCount([
+                'reservations as occupied_slots' => fn($q) => $q->whereNotIn('status', ['cancelled']),
+            ])
             ->get()
-            ->map(fn($payment) => [
-                'payment_id'   => $payment->id,
-                'amount'       => $payment->amount,
-                'method'       => $payment->method,
-                'created_at'   => $payment->created_at,
-                'player' => [
-                    'id'    => $payment->reservation->player->id,
-                    'name'  => $payment->reservation->player->user->name,
-                    'alias' => $payment->reservation->player->alias,
-                ],
-                'game' => [
-                    'id'       => $payment->reservation->game->id,
-                    'title'    => $payment->reservation->game->title,
-                    'starts_at'=> $payment->reservation->game->starts_at,
-                ],
+            ->map(fn($g) => [
+                'id'             => $g->id,
+                'title'          => $g->title,
+                'date'           => $g->starts_at->format('Y-m-d'),
+                'time'           => $g->starts_at->format('H:i'),
+                'max_slots'      => $g->max_slots,
+                'occupied_slots' => $g->occupied_slots,
             ]);
 
-        return [
-            'total'   => Payment::where('status', 'pending')->count(),
-            'amount'  => Payment::where('status', 'pending')->sum('amount'),
-            'items'   => $payments,
+        // ── Créditos gratuitos ────────────────────────────────
+        $activeCredits    = FreeGameCredit::where('status', 'available')->count();
+        $creditsUsedMonth = FreeGameCredit::where('status', 'used')
+                                          ->whereBetween('used_at', [$monthStart, $now])
+                                          ->count();
+
+        // ── Stats finales ─────────────────────────────────────
+        $stats = [
+            'total_players'       => Player::count(),
+            'new_players_month'   => Player::whereBetween('created_at', [$monthStart, $now])->count(),
+            'games_this_month'    => Game::whereBetween('starts_at', [$monthStart, $now])->count(),
+            'upcoming_games'      => Game::whereIn('status', ['published', 'full'])
+                                         ->where('starts_at', '>=', $now)
+                                         ->count(),
+            'monthly_revenue'     => number_format((float) $monthlyRevenue, 2),
+            'revenue_growth'      => $revenueGrowth,
+            'avg_occupancy'       => $avgOccupancy,
+            'total_reservations'  => Reservation::whereNotIn('status', ['cancelled'])->count(),
+            'total_attendances'   => $totalAttendances,
+            'attendance_rate'     => $attendanceRate,
+            'total_no_shows'      => $totalNoShows,
+            'players_warned'      => Player::whereIn('status', ['warned', 'blocked'])->count(),
+            'active_credits'      => $activeCredits,
+            'credits_used_month'  => $creditsUsedMonth,
+            'upcoming_games_list' => $upcomingGamesList,
         ];
-    }
 
-    // -------------------------------------------------------
-    // Jugadores con alerta de no-shows
-    // -------------------------------------------------------
-    private function getWarnedPlayers(): array
-    {
-        $players = Player::where('status', 'warned')
-            ->orWhere('status', 'blocked')
-            ->with('user')
-            ->orderBy('noshow_count', 'desc')
-            ->get()
-            ->map(fn($player) => [
-                'id'           => $player->id,
-                'name'         => $player->user->name,
-                'alias'        => $player->alias,
-                'noshow_count' => $player->noshow_count,
-                'status'       => $player->status,
-            ]);
+        // ── Alertas ───────────────────────────────────────────
+        $alerts = [];
 
-        return [
-            'total' => $players->count(),
-            'items' => $players,
-        ];
-    }
+        $warned  = Player::where('status', 'warned')->count();
+        $blocked = Player::where('status', 'blocked')->count();
+        $pending = Payment::where('status', 'pending')->count();
 
-    // -------------------------------------------------------
-    // Resumen general del club
-    // -------------------------------------------------------
-    private function getSummary(): array
-    {
-        $now = now();
+        if ($blocked > 0) {
+            $alerts[] = [
+                'type'    => 'error',
+                'title'   => 'Jugadores bloqueados',
+                'message' => "{$blocked} jugador(es) bloqueados por exceso de no-shows.",
+            ];
+        }
+        if ($warned > 0) {
+            $alerts[] = [
+                'type'    => 'warning',
+                'title'   => 'Jugadores con aviso',
+                'message' => "{$warned} jugador(es) con inasistencias acumuladas.",
+            ];
+        }
+        if ($pending > 0) {
+            $alerts[] = [
+                'type'    => 'warning',
+                'title'   => 'Pagos pendientes',
+                'message' => "{$pending} pago(s) pendiente(s) de confirmar.",
+            ];
+        }
 
-        return [
-            // Jugadores
-            'total_players'   => Player::count(),
-            'active_players'  => Player::where('status', 'active')->count(),
-            'warned_players'  => Player::where('status', 'warned')->count(),
-            'blocked_players' => Player::where('status', 'blocked')->count(),
-
-            // Partidas
-            'total_games'         => Game::count(),
-            'published_games'     => Game::where('status', 'published')->count(),
-            'games_this_month'    => Game::whereMonth('starts_at', $now->month)
-                                        ->whereYear('starts_at', $now->year)
-                                        ->count(),
-
-            // Ingresos
-            'total_collected'     => Payment::where('status', 'paid')->sum('amount'),
-            'pending_amount'      => Payment::where('status', 'pending')->sum('amount'),
-
-            // Reservas
-            'total_reservations'  => Reservation::count(),
-            'pending_reservations'=> Reservation::where('status', 'pending')->count(),
-        ];
+        return response()->json(['stats' => $stats, 'alerts' => $alerts]);
     }
 }

@@ -173,7 +173,7 @@ export default function AdminPlayerDetail() {
             {/* Avatar / Iniciales */}
             <div className="w-16 h-16 rounded-full bg-accion/20 border-2 border-accion/40 flex items-center justify-center flex-shrink-0">
               {player.avatar
-                ? <img src={`/storage/${player.avatar}`} alt="avatar" className="w-16 h-16 rounded-full object-cover" />
+                ? <img src={`${import.meta.env.VITE_API_URL ?? ''}/storage/${player.avatar}`} alt="avatar" className="w-16 h-16 rounded-full object-cover" />
                 : <span className="text-accion text-2xl font-black font-tactical">
                     {player.name?.charAt(0)?.toUpperCase()}
                   </span>

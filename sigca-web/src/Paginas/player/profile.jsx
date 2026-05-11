@@ -157,7 +157,7 @@ export default function PlayerProfile() {
 
   const getAvatarUrl = () => {
     if (profile?.player?.avatar) {
-      return `/storage/${profile.player.avatar}`;
+      return `${import.meta.env.VITE_API_URL ?? ''}/storage/${profile.player.avatar}`;
     }
     return null;
   };

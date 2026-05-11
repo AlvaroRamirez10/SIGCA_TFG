@@ -6,7 +6,6 @@ import {
   Calendar,
   MapPin,
   Clock,
-  Users,
   Euro,
   ArrowRight,
   LogOut,
@@ -270,36 +269,10 @@ export default function Games() {
                           <span>{game.location}</span>
                         </div>
                         <div className="flex items-center gap-2 text-comando-200 text-sm">
-                          <Users className="w-4 h-4 text-accion" />
-                          <span>
-                            {game.available_slots} / {game.max_slots} plazas disponibles
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-comando-200 text-sm">
                           <Euro className="w-4 h-4 text-accion" />
                           <span className="text-2xl font-black text-white font-tactical">
                             {game.price}€
                           </span>
-                        </div>
-                      </div>
-
-                      {/* Barra de ocupación */}
-                      <div className="mb-4">
-                        <div className="flex justify-between text-xs text-comando-300 mb-1">
-                          <span>Ocupación</span>
-                          <span>
-                            {Math.round(((game.max_slots - game.available_slots) / game.max_slots) * 100)}%
-                          </span>
-                        </div>
-                        <div className="h-2 bg-carbon">
-                          <div
-                            className={`h-full transition-all ${
-                              isFull ? 'bg-emergencia' : 'bg-operativo'
-                            }`}
-                            style={{
-                              width: `${((game.max_slots - game.available_slots) / game.max_slots) * 100}%`
-                            }}
-                          ></div>
                         </div>
                       </div>
 

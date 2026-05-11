@@ -97,19 +97,25 @@ export default function PlayerProfile() {
     if (!file) return;
 
     setUploadingAvatar(true);
-    const formData = new FormData();
-    formData.append('avatar', file);
+    const fd = new FormData();
+    fd.append('avatar', file);
 
     try {
-      await api.post('/player/profile/avatar', formData, {
+      const res = await api.post('/player/profile/avatar', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+      // Actualizar avatar directamente desde la respuesta sin esperar a loadProfile
+      setProfile(prev => ({
+        ...prev,
+        player: { ...prev.player, avatar: res.data.avatar },
+      }));
       setSuccessMessage('Foto actualizada correctamente');
-      loadProfile();
     } catch (error) {
       alert(error.response?.data?.message || 'Error al subir la foto');
     } finally {
       setUploadingAvatar(false);
+      // Resetear el input para permitir subir el mismo archivo de nuevo
+      e.target.value = '';
     }
   };
 
@@ -151,7 +157,7 @@ export default function PlayerProfile() {
 
   const getAvatarUrl = () => {
     if (profile?.player?.avatar) {
-      return `http://127.0.0.1:8000/storage/${profile.player.avatar}`;
+      return `/storage/${profile.player.avatar}`;
     }
     return null;
   };

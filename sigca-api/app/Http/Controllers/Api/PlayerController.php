@@ -23,7 +23,9 @@ class PlayerController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Player::with(['user', 'loyaltyCard'])
+        $query = Player::with(['user', 'loyaltyCard' => function ($q) {
+                $q->withCount(['freeGameCredits as available_credits' => fn($q) => $q->where('status', 'available')]);
+            }])
             ->orderBy('created_at', 'desc');
 
         // Filtro por estado: ?status=warned
@@ -363,5 +365,63 @@ class PlayerController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    // -------------------------------------------------------
+    // RUTAS ADMIN — gestión manual de bonos
+    // -------------------------------------------------------
+
+    /**
+     * El admin añade un bono de partida gratis a un jugador (sorteo en campo, etc.).
+     */
+    public function addCredit(Player $player): JsonResponse
+    {
+        $loyaltyCard = $player->loyaltyCard;
+
+        if (!$loyaltyCard) {
+            return response()->json(['message' => 'El jugador no tiene tarjeta de fidelización.'], 404);
+        }
+
+        \App\Models\FreeGameCredit::create([
+            'loyalty_card_id' => $loyaltyCard->id,
+            'status'          => 'available',
+            'earned_at'       => now(),
+        ]);
+
+        $loyaltyCard->increment('total_credits_earned');
+
+        $available = $loyaltyCard->freeGameCredits()->where('status', 'available')->count();
+
+        return response()->json([
+            'message'           => 'Bono gratis añadido correctamente.',
+            'available_credits' => $available,
+        ]);
+    }
+
+    /**
+     * El admin quita un bono de partida gratis disponible a un jugador.
+     */
+    public function removeCredit(Player $player): JsonResponse
+    {
+        $loyaltyCard = $player->loyaltyCard;
+
+        if (!$loyaltyCard) {
+            return response()->json(['message' => 'El jugador no tiene tarjeta de fidelización.'], 404);
+        }
+
+        $credit = $loyaltyCard->freeGameCredits()->where('status', 'available')->first();
+
+        if (!$credit) {
+            return response()->json(['message' => 'El jugador no tiene bonos disponibles.'], 422);
+        }
+
+        $credit->delete();
+
+        $available = $loyaltyCard->freeGameCredits()->where('status', 'available')->count();
+
+        return response()->json([
+            'message'           => 'Bono gratis eliminado correctamente.',
+            'available_credits' => $available,
+        ]);
     }
 }

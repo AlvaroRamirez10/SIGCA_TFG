@@ -266,8 +266,13 @@ export default function AdminReservations() {
                     </div>
 
                     {/* Pago */}
-                    <div className="text-gray-800 font-bold text-sm">
-                      {reservation.payment?.amount ? `${reservation.payment.amount}€` : '—'}
+                    <div className="text-sm font-bold">
+                      {reservation.payment?.method === 'free'
+                        ? <span className="text-green-600">Bono gratis</span>
+                        : reservation.payment?.amount
+                          ? <span className="text-gray-800">{reservation.payment.amount}€</span>
+                          : <span className="text-gray-400">—</span>
+                      }
                     </div>
 
                     {/* Acciones */}

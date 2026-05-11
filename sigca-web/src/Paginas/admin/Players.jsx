@@ -4,7 +4,7 @@ import { useAuth } from '../../Context/AuthContext';
 import api from '../../Servicios/api';
 import {
   Users, Search, ArrowLeft, Edit2, Trash2, Plus,
-  X, Mail, Phone, Shield, AlertTriangle, CheckCircle
+  X, Mail, Phone, Shield, AlertTriangle, CheckCircle, Gift, Eye
 } from 'lucide-react';
 import MobileMenu from '../../Componentes/MobileMenu';
 import Logo from '../../Componentes/Logo';
@@ -115,6 +115,30 @@ export default function AdminPlayers() {
     }
   };
 
+  const handleAddCredit = async (player) => {
+    try {
+      const res = await api.post(`/admin/players/${player.id}/credits`);
+      setPlayers(prev => prev.map(p => p.id === player.id
+        ? { ...p, loyalty_card: { ...p.loyalty_card, available_credits: res.data.available_credits } }
+        : p
+      ));
+    } catch (e) {
+      alert(e.response?.data?.message || 'Error al añadir bono');
+    }
+  };
+
+  const handleRemoveCredit = async (player) => {
+    try {
+      const res = await api.delete(`/admin/players/${player.id}/credits`);
+      setPlayers(prev => prev.map(p => p.id === player.id
+        ? { ...p, loyalty_card: { ...p.loyalty_card, available_credits: res.data.available_credits } }
+        : p
+      ));
+    } catch (e) {
+      alert(e.response?.data?.message || 'Error al quitar bono');
+    }
+  };
+
   const filtered = players.filter(p =>
     p.name?.toLowerCase().includes(search.toLowerCase()) ||
     p.email?.toLowerCase().includes(search.toLowerCase())
@@ -197,11 +221,12 @@ export default function AdminPlayers() {
         ) : (
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
             {/* Cabecera tabla */}
-            <div className="hidden md:grid grid-cols-[1fr_1fr_auto_auto_auto] gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200 text-gray-500 text-xs font-bold uppercase tracking-wider">
+            <div className="hidden md:grid grid-cols-[1fr_1fr_auto_auto_auto_auto] gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200 text-gray-500 text-xs font-bold uppercase tracking-wider">
               <span>Jugador</span>
               <span>Email</span>
               <span>No-shows</span>
               <span>Sellos</span>
+              <span>Bonos</span>
               <span>Acciones</span>
             </div>
 
@@ -209,7 +234,7 @@ export default function AdminPlayers() {
               {filtered.map(player => (
                 <div
                   key={player.id}
-                  className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto_auto] gap-2 md:gap-4 items-center px-6 py-4 hover:bg-gray-50 transition-colors"
+                  className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto_auto_auto] gap-2 md:gap-4 items-center px-6 py-4 hover:bg-gray-50 transition-colors"
                 >
                   {/* Nombre */}
                   <div className="flex items-center gap-3">
@@ -255,8 +280,40 @@ export default function AdminPlayers() {
                     {player.loyalty_card?.stamps_count || 0}/5
                   </div>
 
+                  {/* Bonos gratuitos */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleRemoveCredit(player)}
+                      disabled={(player.loyalty_card?.available_credits || 0) === 0}
+                      title="Quitar bono"
+                      className="w-6 h-6 flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-700 rounded font-bold text-sm disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                      -
+                    </button>
+                    <span className={`flex items-center gap-1 text-sm font-bold font-tactical min-w-[2rem] justify-center ${
+                      (player.loyalty_card?.available_credits || 0) > 0 ? 'text-green-600' : 'text-gray-400'
+                    }`}>
+                      <Gift className="w-3.5 h-3.5" />
+                      {player.loyalty_card?.available_credits || 0}
+                    </span>
+                    <button
+                      onClick={() => handleAddCredit(player)}
+                      title="Añadir bono"
+                      className="w-6 h-6 flex items-center justify-center bg-green-100 hover:bg-green-200 text-green-700 rounded font-bold text-sm transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+
                   {/* Acciones */}
                   <div className="flex items-center gap-2">
+                    <Link
+                      to={`/admin/players/${player.id}`}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-accion hover:bg-accion-600 text-white rounded text-xs font-bold transition-colors"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      Ver
+                    </Link>
                     <button
                       onClick={() => openEdit(player)}
                       className="flex items-center gap-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-800 text-white rounded text-xs font-bold transition-colors"

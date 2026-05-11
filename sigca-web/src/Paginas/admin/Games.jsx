@@ -75,8 +75,8 @@ export default function AdminGames() {
       title:       game.title || '',
       description: game.description || '',
       location:    game.location || '',
-      starts_at:   game.starts_at ? game.starts_at.slice(0, 16) : '',
-      ends_at:     game.ends_at   ? game.ends_at.slice(0, 16)   : '',
+      starts_at:   toLocalDatetimeInput(game.starts_at),
+      ends_at:     toLocalDatetimeInput(game.ends_at),
       price:       game.price || '',
       max_slots:   game.max_slots || '',
       status:      game.status || 'published',
@@ -123,7 +123,8 @@ export default function AdminGames() {
     if (!validate()) return;
     setSaving(true);
     try {
-      const res = await api.post('/admin/games', form);
+      const payload = { ...form, starts_at: toUTCIso(form.starts_at), ends_at: toUTCIso(form.ends_at) };
+      const res = await api.post('/admin/games', payload);
       setGames(prev => [...prev, res.data.game || res.data]);
       closeModal();
     } catch (e) {
@@ -137,7 +138,8 @@ export default function AdminGames() {
     if (!validate()) return;
     setSaving(true);
     try {
-      const res = await api.put(`/admin/games/${selected.id}`, form);
+      const payload = { ...form, starts_at: toUTCIso(form.starts_at), ends_at: toUTCIso(form.ends_at) };
+      const res = await api.put(`/admin/games/${selected.id}`, payload);
       setGames(prev => prev.map(g => {
         if (g.id !== selected.id) return g;
         const updated = res.data.game || res.data;
@@ -167,9 +169,21 @@ export default function AdminGames() {
   const toggleRoster = (gameId) =>
     setExpandedRosters(prev => ({ ...prev, [gameId]: !prev[gameId] }));
 
+  const toLocalDatetimeInput = (isoString) => {
+    if (!isoString) return '';
+    const d = new Date(isoString);
+    const offset = d.getTimezoneOffset();
+    return new Date(d.getTime() - offset * 60000).toISOString().slice(0, 16);
+  };
+
+  const toUTCIso = (localDt) => {
+    if (!localDt) return '';
+    return new Date(localDt).toISOString();
+  };
+
   const formatDate = (dt) => {
     if (!dt) return '—';
-    return new Date(dt).toLocaleDateString('es-ES', {
+    return new Date(dt).toLocaleString('es-ES', {
       weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });

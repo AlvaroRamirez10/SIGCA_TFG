@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
 import api from '../Servicios/api';
-import { 
-  Calendar, 
-  MapPin, 
-  Clock, 
+import {
+  Calendar,
+  MapPin,
+  Clock,
   Users,
   Euro,
   ArrowRight,
   LogOut,
-  User
+  User,
+  Trophy
 } from 'lucide-react';
 import Logo from '../Componentes/Logo';
 import WhatsAppButton from '../Componentes/WhatsAppButton';
@@ -21,6 +22,7 @@ export default function Games() {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reserving, setReserving] = useState(null);
+  const [availableCredits, setAvailableCredits] = useState(0);
 
   useEffect(() => {
     loadGames();
@@ -28,9 +30,16 @@ export default function Games() {
 
   const loadGames = async () => {
     try {
-      const response = await api.get('/games');
-      let gamesData = response.data?.games || response.data || [];
+      const promises = [api.get('/games')];
+      if (user?.role === 'player') {
+        promises.push(api.get('/player/loyalty').catch(() => null));
+      }
+      const [gamesRes, loyaltyRes] = await Promise.all(promises);
+      let gamesData = gamesRes.data?.games || gamesRes.data || [];
       setGames(Array.isArray(gamesData) ? gamesData : []);
+      if (loyaltyRes) {
+        setAvailableCredits(loyaltyRes.data?.available_credits || 0);
+      }
     } catch (error) {
       console.error('Error cargando partidas:', error);
       setGames([]);
@@ -41,7 +50,6 @@ export default function Games() {
 
   const handleReserve = async (gameId) => {
     if (!user) {
-      // Redirigir a login si no está autenticado
       window.location.href = '/login';
       return;
     }
@@ -51,10 +59,12 @@ export default function Games() {
       return;
     }
 
+    const useFreeCredit = availableCredits > 0;
+
     setReserving(gameId);
     try {
-      await api.post('/player/reservations', { game_id: gameId });
-      alert('¡Reserva realizada con éxito! Revisa tu panel para ver los detalles.');
+      const res = await api.post('/player/reservations', { game_id: gameId, use_free_credit: useFreeCredit });
+      alert(res.data?.message || '¡Reserva realizada con éxito! Revisa tu panel para ver los detalles.');
       window.location.href = '/player/reservations';
     } catch (error) {
       alert(error.response?.data?.message || 'Error al hacer la reserva');
@@ -152,6 +162,21 @@ export default function Games() {
       {/* Lista de partidas */}
       <section className="py-12">
         <div className="container mx-auto px-4">
+          {/* Banner de créditos disponibles */}
+          {availableCredits > 0 && (
+            <div className="mb-8 bg-alerta/10 border-2 border-alerta p-4 flex items-center gap-4">
+              <Trophy className="w-8 h-8 text-alerta flex-shrink-0" />
+              <div>
+                <p className="text-alerta font-black uppercase tracking-wide font-tactical">
+                  ¡Tienes {availableCredits} bono{availableCredits > 1 ? 's' : ''} de partida gratis!
+                </p>
+                <p className="text-alerta/80 text-sm">
+                  Tu próxima reserva se confirmará automáticamente usando tu bono gratuito.
+                </p>
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (

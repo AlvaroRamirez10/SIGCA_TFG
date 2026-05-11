@@ -13,6 +13,7 @@ class Player extends Model
         'user_id',
         'alias',
         'phone',
+        'avatar',
         'noshow_count',
         'status',
         'notes',

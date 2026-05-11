@@ -18,6 +18,13 @@ const STATUS_CONFIG = {
   refunded: { label: 'Reembolsado', badge: 'bg-gray-100 border-gray-300 text-gray-600' },
 };
 
+const METHOD_LABEL = {
+  bizum:    'Bizum',
+  cash:     'Efectivo',
+  transfer: 'Transferencia',
+  free:     'Partida gratis',
+};
+
 const ACTION_CONFIG = {
   confirm: { label: 'Confirmar pago',  btn: 'Confirmar',  btnClass: 'bg-green-600 hover:bg-green-700' },
   reject:  { label: 'Rechazar pago',   btn: 'Rechazar',   btnClass: 'bg-red-600 hover:bg-red-700' },
@@ -247,18 +254,22 @@ export default function AdminPayments() {
                       {payment.amount}€
                     </div>
 
-                    <div className="text-gray-500 text-sm capitalize">
-                      {payment.method || payment.payment_method || '—'}
+                    <div className="text-sm">
+                      {payment.method === 'free'
+                        ? <span className="text-green-700 font-bold">Partida gratis</span>
+                        : <span className="text-gray-500">{METHOD_LABEL[payment.method] || payment.method || '—'}</span>
+                      }
                     </div>
 
                     <div>
-                      <span className={`px-2 py-1 border rounded text-xs font-bold uppercase ${cfg.badge}`}>
-                        {cfg.label}
-                      </span>
+                      {payment.method === 'free'
+                        ? <span className="px-2 py-1 border rounded text-xs font-bold uppercase bg-green-100 border-green-300 text-green-800">Confirmado</span>
+                        : <span className={`px-2 py-1 border rounded text-xs font-bold uppercase ${cfg.badge}`}>{cfg.label}</span>
+                      }
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {payment.status === 'pending' && (
+                      {payment.method !== 'free' && payment.status === 'pending' && (
                         <>
                           <button
                             onClick={() => openAction(payment, 'confirm')}
@@ -276,7 +287,7 @@ export default function AdminPayments() {
                           </button>
                         </>
                       )}
-                      {payment.status === 'paid' && (
+                      {payment.method !== 'free' && payment.status === 'paid' && (
                         <button
                           onClick={() => openAction(payment, 'refund')}
                           className="flex items-center gap-1 px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-xs font-bold transition-colors"
@@ -284,6 +295,9 @@ export default function AdminPayments() {
                           <XCircle className="w-3.5 h-3.5" />
                           Reembolsar
                         </button>
+                      )}
+                      {payment.method === 'free' && (
+                        <span className="text-gray-400 text-xs italic">Sin acciones</span>
                       )}
                     </div>
                   </div>

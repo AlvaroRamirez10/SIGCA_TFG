@@ -77,9 +77,6 @@ class AuthController extends Controller
             ], Response::HTTP_UNAUTHORIZED);
         }
 
-        // Revocar tokens anteriores para forzar sesión única
-        $user->tokens()->delete();
-
         $tokenName = $user->isAdmin() ? 'admin-token' : 'player-token';
         $token     = $user->createToken($tokenName)->plainTextToken;
 

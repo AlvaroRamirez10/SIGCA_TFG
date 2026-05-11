@@ -39,7 +39,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Dashboard con estadísticas
         Route::get('/dashboard', [DashboardController::class, 'index']);
         
-        // Gestión de jugadores (CRUD completo)
+        // Gestión de jugadores (CRUD completo + bonos manuales)
+        Route::post('players/{player}/credits', [PlayerController::class, 'addCredit']);
+        Route::delete('players/{player}/credits', [PlayerController::class, 'removeCredit']);
         Route::apiResource('players', PlayerController::class);
         
         // Gestión de partidas (CRUD completo)

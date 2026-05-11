@@ -16,6 +16,7 @@ import PlayerProfile from './Paginas/player/profile';
 // Páginas de admin
 import AdminDashboard from './Paginas/admin/Dashboard';
 import AdminPlayers from './Paginas/admin/Players';
+import AdminPlayerDetail from './Paginas/admin/PlayerDetail';
 import AdminGames from './Paginas/admin/Games';
 import AdminReservations from './Paginas/admin/Reservations';
 import AdminPayments from './Paginas/admin/Payments';
@@ -69,6 +70,7 @@ function AppRoutes() {
       {/* Rutas de admin */}
       <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/players" element={<ProtectedRoute requireAdmin><AdminPlayers /></ProtectedRoute>} />
+      <Route path="/admin/players/:id" element={<ProtectedRoute requireAdmin><AdminPlayerDetail /></ProtectedRoute>} />
       <Route path="/admin/games" element={<ProtectedRoute requireAdmin><AdminGames /></ProtectedRoute>} />
       <Route path="/admin/reservations" element={<ProtectedRoute requireAdmin><AdminReservations /></ProtectedRoute>} />
       <Route path="/admin/payments" element={<ProtectedRoute requireAdmin><AdminPayments /></ProtectedRoute>} />

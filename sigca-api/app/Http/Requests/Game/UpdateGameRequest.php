@@ -38,7 +38,7 @@ class UpdateGameRequest extends FormRequest
             'ends_at'     => ['sometimes', 'nullable', 'date', 'after:starts_at'],
             'max_slots'   => ['sometimes', 'integer', 'min:1', 'max:500'],
             'price'       => ['sometimes', 'numeric', 'min:0'],
-            'status'      => ['sometimes', Rule::in(['draft', 'published', 'cancelled', 'finished'])],
+            'status'      => ['sometimes', Rule::in(['draft', 'published', 'full', 'cancelled', 'finished'])],
             'notes'       => ['nullable', 'string', 'max:500'],
         ];
     }

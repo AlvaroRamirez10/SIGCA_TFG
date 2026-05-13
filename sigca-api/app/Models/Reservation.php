@@ -21,6 +21,10 @@ class Reservation extends Model
         'attended' => 'boolean',
     ];
 
+    // Transient flag: set to true in the controller when the reservation
+    // is covered by a free credit so the Observer skips the stamp award.
+    public bool $skipStamp = false;
+
     // -------------------------------------------------------
     // Relaciones
     // -------------------------------------------------------

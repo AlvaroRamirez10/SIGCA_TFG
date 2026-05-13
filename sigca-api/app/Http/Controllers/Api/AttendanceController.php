@@ -47,6 +47,11 @@ class AttendanceController extends Controller
             ], Response::HTTP_CONFLICT);
         }
 
+        // Signal the Observer to skip the stamp when the slot was covered by a free credit
+        if ($reservation->free_credit_id !== null) {
+            $reservation->skipStamp = true;
+        }
+
         $reservation->update(['attended' => $request->attended]);
 
         // Recargamos con las relaciones actualizadas por el Observer
@@ -54,9 +59,13 @@ class AttendanceController extends Controller
 
         $player = $reservation->player;
 
+        $attendedMessage = $reservation->skipStamp
+            ? 'Asistencia confirmada.'
+            : 'Asistencia confirmada. Sello añadido.';
+
         return response()->json([
             'message'     => $request->attended
-                ? 'Asistencia confirmada. Sello añadido.'
+                ? $attendedMessage
                 : "No-show registrado. Total faltas: {$player->noshow_count}.",
             'reservation' => $reservation,
             'player'      => [

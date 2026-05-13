@@ -281,11 +281,21 @@ export default function Games() {
                         <button
                           onClick={() => handleReserve(game.id)}
                           disabled={isFull || reserving === game.id}
-                          className="w-full group relative overflow-hidden bg-accion text-white font-bold py-3 font-tactical uppercase text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-accion-600 transition-all"
+                          className={`w-full group relative overflow-hidden text-white font-bold py-3 font-tactical uppercase text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
+                            availableCredits > 0 && !isFull
+                              ? 'bg-alerta hover:bg-yellow-600'
+                              : 'bg-accion hover:bg-accion-600'
+                          }`}
                         >
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                           <span className="relative flex items-center justify-center gap-2">
-                            {reserving === game.id ? 'PROCESANDO...' : isFull ? 'SIN PLAZAS' : 'RESERVAR PLAZA'}
+                            {reserving === game.id
+                              ? 'PROCESANDO...'
+                              : isFull
+                              ? 'SIN PLAZAS'
+                              : availableCredits > 0
+                              ? '🎟 USAR BONO GRATUITO'
+                              : 'RESERVAR PLAZA'}
                             {!isFull && reserving !== game.id && <ArrowRight className="w-4 h-4" />}
                           </span>
                         </button>

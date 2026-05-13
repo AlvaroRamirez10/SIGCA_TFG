@@ -5,7 +5,7 @@ import api from '../../Servicios/api';
 import {
   ArrowLeft, User, Mail, Phone, Shield, AlertTriangle,
   CheckCircle, XCircle, Clock, Euro, Gift, Star,
-  Calendar, Stamp, X
+  Calendar, Stamp, X, FileText, Save
 } from 'lucide-react';
 import MobileMenu from '../../Componentes/MobileMenu';
 import Logo from '../../Componentes/Logo';
@@ -38,6 +38,9 @@ export default function AdminPlayerDetail() {
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
   const [statusForm, setStatusForm] = useState('');
+  const [notesText,  setNotesText]  = useState('');
+  const [notesSaving, setNotesSaving] = useState(false);
+  const [notesSaved,  setNotesSaved]  = useState(false);
 
   useEffect(() => { loadPlayer(); }, [id]);
 
@@ -48,6 +51,7 @@ export default function AdminPlayerDetail() {
       const p = res.data.player ?? res.data;
       setPlayer(normalize(p));
       setStatusForm(p.status || 'active');
+      setNotesText(p.notes || '');
     } catch {
       navigate('/admin/players');
     } finally {
@@ -96,6 +100,21 @@ export default function AdminPlayerDetail() {
       }));
     } catch (e) {
       alert(e.response?.data?.message || 'Error al quitar bono');
+    }
+  };
+
+  const handleNotesSave = async () => {
+    setNotesSaving(true);
+    setNotesSaved(false);
+    try {
+      await api.put(`/admin/players/${id}`, { notes: notesText });
+      setPlayer(prev => ({ ...prev, notes: notesText }));
+      setNotesSaved(true);
+      setTimeout(() => setNotesSaved(false), 2500);
+    } catch {
+      alert('Error al guardar las observaciones');
+    } finally {
+      setNotesSaving(false);
     }
   };
 
@@ -193,11 +212,6 @@ export default function AdminPlayerDetail() {
                 {player.phone && <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5" />{player.phone}</span>}
                 {player.alias && <span className="flex items-center gap-1"><Shield className="w-3.5 h-3.5" />"{player.alias}"</span>}
               </div>
-              {player.notes && (
-                <p className="mt-2 text-xs text-gray-400 bg-gray-50 border border-gray-200 rounded px-3 py-1.5">
-                  Nota: {player.notes}
-                </p>
-              )}
             </div>
 
             {/* Botón cambiar estado */}
@@ -212,7 +226,7 @@ export default function AdminPlayerDetail() {
         </div>
 
         {/* Tarjetas de estadísticas */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -271,6 +285,19 @@ export default function AdminPlayerDetail() {
             </div>
             <p className="text-gray-400 text-xs mt-1">{totalCredits} generados en total</p>
           </div>
+
+          <div className={`bg-white border rounded-lg shadow-sm p-5 ${player.noshow_count > 0 ? 'border-orange-300' : 'border-gray-200'}`}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${player.noshow_count > 0 ? 'bg-orange-100' : 'bg-gray-100'}`}>
+                <AlertTriangle className={`w-5 h-5 ${player.noshow_count > 0 ? 'text-orange-600' : 'text-gray-400'}`} />
+              </div>
+              <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">No-shows</span>
+            </div>
+            <p className={`text-3xl font-black font-tactical ${player.noshow_count > 0 ? 'text-orange-600' : 'text-gray-400'}`}>
+              {player.noshow_count || 0}
+            </p>
+            <p className="text-gray-400 text-xs mt-1">inasistencias sin avisar</p>
+          </div>
         </div>
 
         {/* Cartilla de sellos visual */}
@@ -298,6 +325,37 @@ export default function AdminPlayerDetail() {
                 : <span>{5 - stampsCount} sello{5 - stampsCount !== 1 ? 's' : ''} para el próximo bono</span>
               }
             </div>
+          </div>
+        </div>
+
+        {/* Observaciones del admin */}
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-lg font-black text-gray-900 font-tactical uppercase mb-4 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-gray-500" />
+            Observaciones del admin
+          </h2>
+          <textarea
+            value={notesText}
+            onChange={e => setNotesText(e.target.value)}
+            maxLength={500}
+            rows={4}
+            placeholder="Escribe aquí cualquier observación sobre este jugador (comportamiento, notas internas, acuerdos especiales…)"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 resize-none focus:outline-none focus:border-accion focus:ring-1 focus:ring-accion placeholder-gray-300"
+          />
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-xs text-gray-400">{notesText.length}/500</span>
+            <button
+              onClick={handleNotesSave}
+              disabled={notesSaving}
+              className={`flex items-center gap-2 font-bold py-2 px-4 rounded transition-colors font-tactical uppercase text-sm disabled:opacity-50 ${
+                notesSaved
+                  ? 'bg-green-600 text-white'
+                  : 'bg-accion hover:bg-accion-600 text-white'
+              }`}
+            >
+              <Save className="w-4 h-4" />
+              {notesSaving ? 'Guardando…' : notesSaved ? 'Guardado' : 'Guardar'}
+            </button>
           </div>
         </div>
 

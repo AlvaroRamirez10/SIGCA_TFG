@@ -332,7 +332,7 @@ export default function PlayerReservations() {
                       {/* Estados */}
                       <div className="flex flex-wrap gap-2">
                         {getStatusBadge(reservation.status)}
-                        {getPaymentStatusBadge(reservation.payment)}
+                        {reservation.status !== 'pending' && getPaymentStatusBadge(reservation.payment)}
                         {reservation.free_credit_id && (
                           <span className="inline-flex items-center px-3 py-1 text-xs font-bold uppercase tracking-wider border bg-alerta/10 text-alerta border-alerta/30">
                             Partida gratis

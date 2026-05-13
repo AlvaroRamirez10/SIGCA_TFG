@@ -27,7 +27,13 @@ class ReservationObserver
 
     private function handleAttended(Reservation $reservation): void
     {
+        // Las reservas con bono gratuito no generan sello
+        if ($reservation->skipStamp || $reservation->free_credit_id !== null) {
+            return;
+        }
+
         DB::transaction(function () use ($reservation) {
+
             $player      = $reservation->player;
             $loyaltyCard = $player->loyaltyCard;
             $required    = config('sigca.loyalty_stamps_required', 5);
